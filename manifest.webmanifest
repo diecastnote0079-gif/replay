@@ -1,17 +1,32 @@
 {
   "id": "./",
-  "name": "二周目電玩",
-  "short_name": "二周目電玩",
-  "description": "二周目電玩 — 庫存管理與公開店面",
+  "name": "REPLAY",
+  "short_name": "REPLAY",
+  "description": "REPLAY — 庫存管理與店面",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#eef1f5",
-  "theme_color": "#2563eb",
+  "theme_color": "#16233d",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
