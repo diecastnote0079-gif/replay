@@ -245,17 +245,17 @@ function errMsg(e){
 var TIMEOUT_MS = 45000;
 async function api(payload, opts){
   try{
-    return await apiOnce(payload);
+    return await apiOnce(payload, opts);
   }catch(e){
     // Google 偶爾（實測過）會回一個「驗證頁」HTML 而不是 JSON → 等一下自動再試一次
     if(/忙線|格式不對/.test(e.message)){
       await new Promise(function(r){ setTimeout(r, 1500); });
-      return await apiOnce(payload);
+      return await apiOnce(payload, opts);
     }
     throw e;
   }
 }
-async function apiOnce(payload){
+async function apiOnce(payload, opts){
   var ctl = new AbortController();
   var timer = setTimeout(function(){ ctl.abort(); }, (opts && opts.timeout) || TIMEOUT_MS);
   try{
