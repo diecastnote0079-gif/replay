@@ -244,6 +244,18 @@ function errMsg(e){
    Apps Script 偶爾會慢（冷啟動／排隊），所以一律加 45 秒上限，不要讓畫面無聲卡住。 */
 var TIMEOUT_MS = 45000;
 async function api(payload, opts){
+  try{
+    return await apiOnce(payload);
+  }catch(e){
+    // Google 偶爾（實測過）會回一個「驗證頁」HTML 而不是 JSON → 等一下自動再試一次
+    if(/忙線|格式不對/.test(e.message)){
+      await new Promise(function(r){ setTimeout(r, 1500); });
+      return await apiOnce(payload);
+    }
+    throw e;
+  }
+}
+async function apiOnce(payload){
   var ctl = new AbortController();
   var timer = setTimeout(function(){ ctl.abort(); }, (opts && opts.timeout) || TIMEOUT_MS);
   try{
@@ -256,7 +268,12 @@ async function api(payload, opts){
     });
     if(!r.ok) throw new Error('HTTP '+r.status);
     var txt = await r.text();
-    try { return JSON.parse(txt); } catch(e){ throw new Error('回傳不是 JSON：'+txt.slice(0,90)); }
+    try { return JSON.parse(txt); }
+    catch(e){
+      // 後端偶爾會回 HTML（Google 忙／被暫時擋）而不是 JSON → 給人看得懂的話
+      throw new Error(txt.slice(0,40).toLowerCase().indexOf('<!doctype')>=0 || txt.slice(0,1)==='<'
+        ? '後端暫時忙線（Google 回的），等一下再試' : '回傳格式不對：'+txt.slice(0,60));
+    }
   }catch(e){
     if(e && e.name==='AbortError') throw new Error('等太久（後端沒回應）');
     throw e;
