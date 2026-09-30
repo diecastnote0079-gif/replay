@@ -84,6 +84,10 @@ header{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:
       padding:8px 12px;font-size:12.5px;font-weight:600;color:var(--ink)}
 .btnf .n{background:var(--brand);color:var(--onbrand);border-radius:999px;padding:1px 7px;font-size:11px;font-weight:600}
 .uiver{margin-left:auto;font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums}
+.btnf .chev{font-size:10px;color:var(--mut);margin-left:2px}
+.fhint{font-size:11px;color:var(--mut);animation:hintfade .5s ease 6s forwards}
+@keyframes hintfade{to{opacity:.28}}
+.fgrab,.fsh{touch-action:none;cursor:grab}
 .selbar{display:flex;gap:6px;flex-wrap:wrap;max-width:1400px;margin:0 auto;padding:7px 10px 0}
 .selchip{display:inline-flex;align-items:center;gap:6px;background:var(--gray);border:1px solid var(--line);border-radius:999px;
          padding:4px 6px 4px 10px;font-size:11.5px;color:var(--ink2)}
@@ -299,8 +303,8 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
             </select>
           </div>
     </div>
-  <div class="ftrig">
-    <button class="btnf" id="btnFilter">篩選<span class="n" id="fCount" hidden>0</span></button><span class="uiver" id="uiver"></span>
+  <div class="ftrig" id="ftrig">
+    <button class="btnf" id="btnFilter" aria-expanded="false">篩選<span class="n" id="fCount" hidden>0</span><span class="chev">▴</span></button><span class="fhint" id="fhint">上滑或點這裡開面板</span><span class="uiver" id="uiver"></span>
   </div>
   <div class="selbar" id="selbar" hidden></div>
 
@@ -365,7 +369,7 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
-var UI_VER = 'v6';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var UI_VER = 'v7';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -599,6 +603,24 @@ function wireFilter(){
     applyF();
   };
   document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('fsheet').classList.contains('on')) closeF(); });
+  /* 手勢：在觸發列往上滑＝開；在把手上／標題列往下拖＝關 */
+  var tz = $('ftrig'), y0 = null;
+  tz.addEventListener('touchstart', function(e){ y0 = e.touches[0].clientY; }, {passive:true});
+  tz.addEventListener('touchend', function(e){
+    if(y0===null) return;
+    var y1 = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : y0;
+    if(y0 - y1 > 26) openF();
+    y0 = null;
+  }, {passive:true});
+  var sh = $('fsheet'), sy = null, dy = 0;
+  function dStart(e){ sy = e.touches[0].clientY; dy = 0; sh.style.transition = 'none'; }
+  function dMove(e){ if(sy===null) return; dy = Math.max(0, e.touches[0].clientY - sy); sh.style.transform = 'translateY(' + dy + 'px)'; }
+  function dEnd(){ if(sy===null) return; sh.style.transition = ''; sh.style.transform = ''; var close = dy > 70; sy = null; dy = 0; if(close) closeF(); }
+  [sh.querySelector('.fgrab'), sh.querySelector('.fsh')].forEach(function(el){
+    el.addEventListener('touchstart', dStart, {passive:true});
+    el.addEventListener('touchmove', dMove, {passive:true});
+    el.addEventListener('touchend', dEnd, {passive:true});
+  });
 }
 
 function render(){
