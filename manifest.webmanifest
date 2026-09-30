@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "凜的生意簿",
-  "short_name": "生意簿",
-  "description": "凜的生意簿庫存管理與公開店面",
+  "name": "二周目電玩",
+  "short_name": "二周目電玩",
+  "description": "二周目電玩 — 庫存管理與公開店面",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
