@@ -367,7 +367,7 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
-var UI_VER = 'v8';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var UI_VER = 'v9';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -508,7 +508,7 @@ function syncSubFilter(){
 
 function sortRows(rows, key){
   var p = (key||'profit-desc').split('-'), f=p[0], dir=p[1], cmp;
-  if(f==='name') cmp=function(a,b){ return a.name.localeCompare(b.name,'zh-Hant'); };
+  if(f==='name') cmp=function(a,b){ return gkey(a).localeCompare(gkey(b),'zh-Hant'); };
   else if(f==='qty') cmp=function(a,b){ return a.qty-b.qty; };
   else if(f==='date') cmp=function(a,b){ return (a.date||'').localeCompare(b.date||''); };
   else if(f==='buy') cmp=function(a,b){ return (a.buy==null?-999:a.buy)-(b.buy==null?-999:b.buy); };
@@ -642,7 +642,7 @@ function render(){
   renderF();
 
   var groups = {}, order = [];
-  rows.forEach(function(r){ if(!groups[r.name]){ groups[r.name]=[]; order.push(r.name); } groups[r.name].push(r); });
+  rows.forEach(function(r){ var k=gkey(r); if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(r); });
   order.sort(function(a,b){
     var ma = groups[a].reduce(function(s,r){ return s+(r.profit==null?0:r.profit); },0);
     var mb = groups[b].reduce(function(s,r){ return s+(r.profit==null?0:r.profit); },0);
@@ -682,7 +682,7 @@ function render(){
       var n = el.getAttribute('data-g');
       if(ev.target.classList.contains('gadd')){
         var first = null;
-        S.items.forEach(function(r){ if(r.name===n && !first) first=r; });
+        S.items.forEach(function(r){ if(gkey(r)===n && !first) first=r; });
         openForm(first, null, false);
         return;
       }
@@ -695,6 +695,9 @@ function render(){
   });
 }
 
+// 識別字＝正式名稱優先，沒有才用阿夜打的名字（跟後端合併識別一致）
+function gkey(r){ return r.title || r.name; }
+
 function kidHtml(r){
   var st = {'在賣':'sale','自藏':'keep','已售':'sold'}[r.status] || '';
   var sub = [r.cat, r.sub, r.lang, r.version, r.cond].filter(Boolean).join(' · ') || '—';
@@ -704,7 +707,7 @@ function kidHtml(r){
         +   '<div class="km">'
         +     '<div class="k1">'+esc(sub)+'</div>'
         +     '<div class="k2"><span class="qty">×'+esc(r.qty)+'</span><span class="tag '+st+'">'+esc(r.status||'在賣')+'</span>'
-        +       (r.title && r.title!==r.name ? '<span class="ttl">'+esc(r.title)+'</span>' : '')
+        +       (r.title && r.title!==r.name ? '<span class="ttl">'+esc(r.name)+'</span>' : '')
         +       (r.note ? '<span class="ttl">'+esc(r.note)+'</span>' : '')
         +     '</div>'
         +   '</div>'
@@ -727,7 +730,7 @@ function kidHtml(r){
 function renderStats(rows){
   var g={}, qty=0, onSale=0, profit=0, value=0;
   rows.forEach(function(r){
-    g[r.name]=1; qty+=r.qty;
+    g[gkey(r)]=1; qty+=r.qty;
     if(r.status==='在賣') onSale++;
     if(r.profit!=null) profit+=r.profit;
     if(r.status==='在賣' && r.sell!=null) value+=r.sell*r.qty;
@@ -858,14 +861,14 @@ function renderShop(){
   var q = SHOP.q.toLowerCase();
   var rows = SHOP.items.filter(function(x){
     if(SHOP.cat && x.cat!==SHOP.cat) return false;
-    if(q && String(x.name||'').toLowerCase().indexOf(q)<0) return false;
+    if(q && String(x.name||'').toLowerCase().indexOf(q)<0 && String(x.title||'').toLowerCase().indexOf(q)<0) return false;
     return true;
   });
   if(!rows.length){ $('slist').innerHTML = '<div class="empty">目前沒有符合的貨</div>'; return; }
   $('slist').innerHTML = rows.map(function(x){
     var mt = [x.cat, x.sub, x.version, x.cond, x.lang].filter(Boolean).join(' · ');
-    return '<div class="item"><div class="info"><div class="nm">'+esc(x.name)+'</div>'
-      + (x.title && x.title!==x.name ? '<div class="mt">'+esc(x.title)+'</div>' : '')
+    return '<div class="item"><div class="info"><div class="nm">'+esc(x.title||x.name)+'</div>'
+      + (x.title && x.title!==x.name ? '<div class="mt">'+esc(x.name)+'</div>' : '')
       + '<div class="mt">'+esc(mt||'—')+'</div>'
       + (x.note ? '<div class="nt">'+esc(x.note)+'</div>' : '')
       + '</div><div class="pr">'+rm(x.sell)+'</div></div>';
