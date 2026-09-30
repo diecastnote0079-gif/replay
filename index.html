@@ -364,6 +364,7 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
+var UI_VER = 'v6';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -892,7 +893,9 @@ function wire(){
 (async function boot(){
   wire();
   // 後端版本探針（部署後暖機中的舊實例會回舊字串，這裡看得到）
-  try{ var v = await api({cmd:'ver'}); if(v && v.ok) $('ver').textContent = v.code; }catch(e){ $('ver').textContent = '連不上後端'; }
+  document.documentElement.setAttribute('data-ui', UI_VER);
+  try{ var v = await api({cmd:'ver'}); $('ver').textContent = 'ui' + UI_VER + ' · ' + ((v && v.ok) ? v.code : '後端無回應'); }
+  catch(e){ $('ver').textContent = 'ui' + UI_VER + ' · 連不上後端'; }
   if(location.search.indexOf('shop=1')>=0){ showShopMode(); return; }
   var t = getTok();
   if(t){ S.tok = t; $('lock').style.display='none'; $('admin').hidden=false; chipRow(); syncSubFilter(); load(); }
