@@ -85,8 +85,6 @@ header{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:
 .btnf .n{background:var(--brand);color:var(--onbrand);border-radius:999px;padding:1px 7px;font-size:11px;font-weight:600}
 .uiver{margin-left:auto;font-size:10.5px;color:var(--mut);font-variant-numeric:tabular-nums}
 .btnf .chev{font-size:10px;color:var(--mut);margin-left:2px}
-.fhint{font-size:11px;color:var(--mut);animation:hintfade .5s ease 6s forwards}
-@keyframes hintfade{to{opacity:.28}}
 .fgrab,.fsh{touch-action:none;cursor:grab}
 .selbar{display:flex;gap:6px;flex-wrap:wrap;max-width:1400px;margin:0 auto;padding:7px 10px 0}
 .selchip{display:inline-flex;align-items:center;gap:6px;background:var(--gray);border:1px solid var(--line);border-radius:999px;
@@ -304,7 +302,7 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
           </div>
     </div>
   <div class="ftrig" id="ftrig">
-    <button class="btnf" id="btnFilter" aria-expanded="false">篩選<span class="n" id="fCount" hidden>0</span><span class="chev">▴</span></button><span class="fhint" id="fhint">上滑或點這裡開面板</span><span class="uiver" id="uiver"></span>
+    <button class="btnf" id="btnFilter" aria-expanded="false">篩選<span class="n" id="fCount" hidden>0</span><span class="chev">▴</span></button><span class="uiver" id="uiver"></span>
   </div>
   <div class="selbar" id="selbar" hidden></div>
 
@@ -369,7 +367,7 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
-var UI_VER = 'v7';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var UI_VER = 'v8';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -487,6 +485,11 @@ async function load(){
   }
 }
 
+function syncChips(){
+  Array.prototype.forEach.call($('chips').querySelectorAll('.chip'), function(el){
+    el.classList.toggle('on', String(el.getAttribute('data-cat')||'') === String(S.cat||''));
+  });
+}
 function chipRow(){
   var h = '<div class="chip'+(S.cat===''?' on':'')+'" data-cat="">全部</div>';
   CATS.forEach(function(c){ h += '<div class="chip'+(S.cat===c?' on':'')+'" data-cat="'+esc(c)+'">'+esc(c)+'</div>'; });
@@ -635,6 +638,7 @@ function render(){
   });
   rows = sortRows(rows, S.sort);
   renderStats(rows);
+  syncChips();
   renderF();
 
   var groups = {}, order = [];
