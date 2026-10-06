@@ -255,6 +255,34 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
   .segsm{display:none}
 }
 @media(min-width:430px){.grid{grid-template-columns:1fr 1fr}.grid .full{grid-column:1/-1}}
+.kid .ka button.sk{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.kid .ka button.rf{background:#fff5f4;border-color:var(--redline);color:var(--red)}
+.onm{font-size:17px;font-weight:700;line-height:1.3}
+.osp{font-size:12px;color:var(--mut);margin-top:3px}
+.oon{font-size:12px;color:var(--ink2);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line2)}
+.obig{display:flex;align-items:center;gap:12px;margin-top:12px}
+.obig button{width:64px;height:64px;border:1px solid var(--selline);background:var(--sel);color:var(--selink);border-radius:14px;font-size:28px;line-height:1;font-family:inherit}
+.ov2{flex:1;text-align:center}
+.ov2 b{font-size:34px;display:block;line-height:1}
+.ov2 i{font-style:normal;font-size:11px;color:var(--mut)}
+.och{display:flex;gap:8px;margin-top:12px}
+.och button{flex:1;height:56px;border:1px solid var(--line);background:var(--surface2);border-radius:12px;font-size:13px;font-family:inherit;color:var(--ink2)}
+.och button.on{border-color:var(--brand);background:var(--sel);color:var(--selink);font-weight:700}
+.ofld{width:100%;height:48px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:13px;background:var(--surface2);font-family:inherit;margin-top:12px}
+.olab{display:block;font-size:11.5px;color:var(--ink2);margin:12px 0 4px}
+.ocalc{font-size:12.5px;color:var(--ink2);margin-top:9px;background:var(--gray);border:1px solid var(--line2);border-radius:10px;padding:9px 11px;line-height:1.8}
+.ocalc b{font-variant-numeric:tabular-nums;font-size:14px}
+.ocalc b.g{color:#1a7f45}
+.ocalc b.r{color:var(--red)}
+.ocalc i{font-style:normal;color:var(--mut)}
+.shf button.save.warn{background:var(--red)}
+.bnav{position:fixed;left:0;right:0;bottom:0;height:60px;background:var(--surface);border-top:1px solid var(--line);display:flex;z-index:40}
+.bnav button{flex:1;border:0;background:transparent;font-family:inherit;font-size:12px;color:var(--mut);height:60px}
+.bnav button.on{color:var(--brand);font-weight:700}
+body.tab-sell .filters,body.tab-sell .bar,body.tab-sell .ftrig,body.tab-sell .selbar,body.tab-sell #thead{display:none}
+body.tab-sell .ka button:not(.sk):not(.rf){display:none}
+body.tab-sell .ka button.sk,body.tab-sell .ka button.rf{flex:1;height:48px;font-size:14px}
+#admin{padding-bottom:64px}
 </style>
 </head>
 <body>
@@ -324,6 +352,11 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
       <div class="card" id="list"></div>
     </div>
   </main>
+  <nav class="bnav" id="bnav">
+    <button data-tab="in">入庫</button>
+    <button data-tab="sell">出庫</button>
+    <button data-tab="stock" class="on">庫存</button>
+  </nav>
   <button class="fab" id="btnAdd" title="加一筆">＋</button>
 </div>
 
@@ -362,12 +395,20 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
   </div>
   <div class="ffoot"><button class="cl" id="fClear">清除</button><button class="ok" id="fApply">套用</button></div>
 </div>
+<!-- ===== 出庫面板（賣出／退貨）===== -->
+<div class="ov" id="ovOut">
+  <div class="sh">
+    <div class="shh"><h3 id="oTitle">賣出</h3><button id="oClose">✕</button></div>
+    <div class="shb" id="oBody"></div>
+    <div class="shf"><button class="save" id="oOk">確認賣出</button><button class="cancel" id="oCancel">取消</button></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
-var UI_VER = 'v9';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var UI_VER = 'v11';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -383,6 +424,98 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ re
 function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('on');},2400); }
 function num(v){ var n=parseFloat(v); return isNaN(n)?null:n; }
 function rm(v){ return v==null?'—':'RM'+Number(v).toFixed(2); }
+/* ===== 出庫（賣出／退貨）===== */
+var OUT = { id:null, mode:'sell', n:1, it:null };
+/* ===== 底部導覽：入庫／出庫／庫存 ===== */
+function setTab(t){
+  if(t==='in'){ openForm(null, null, false); return; }
+  S.tab = t;
+  document.body.classList.toggle('tab-sell', t === 'sell');
+  if(t==='sell'){ S.items.forEach(function(r){ S.open[gkey(r)] = true; }); }
+  var bs = $('bnav').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++) bs[i].classList.toggle('on', bs[i].getAttribute('data-tab') === t);
+  render();
+}
+function openOut(it, mode){
+  if(!it) return;
+  OUT = { id:it.id, mode:mode, n:1, it:it };
+  $('oTitle').textContent = (mode==='sell' ? '賣出' : '退貨');
+  $('oOk').textContent = (mode==='sell' ? '確認賣出' : '確認退貨');
+  $('oOk').className = (mode==='sell' ? 'save' : 'save warn');
+  var sub = [it.cat, it.sub, it.lang, it.version, it.cond].filter(Boolean).join(' · ');
+  var h = '<div class="onm">' + esc(it.title || it.name) + '</div>'
+        + '<div class="osp">' + esc(sub) + '</div>'
+        + '<div class="oon">' + (mode==='sell'
+            ? ('架上還有 ' + it.qty + ' 片' + (it.buy==null ? '' : ' · 收價 ' + rm(it.buy)))
+            : ('已售 · 賣價 ' + rm(it.sell) + (it.note ? ' · ' + esc(it.note) : ''))) + '</div>';
+  if(mode==='sell'){
+    h += '<label class="olab">賣價（可改）</label>'
+       + '<input class="ofld" id="oSell" type="number" inputmode="decimal" step="0.01" min="0" value="'
+       + (it.sell==null?'':it.sell) + '" placeholder="RM">'
+       + '<label class="olab">到手（Shopee 撥款後才知道，可留空）</label>'
+       + '<input class="ofld" id="oArr" type="number" inputmode="decimal" step="0.01" min="0" value="'
+       + (it.arrived==null?'':it.arrived) + '" placeholder="留空＝先看賣價">'
+       + '<div class="ocalc" id="oCalc"></div>';
+  }
+  h += '<div class="obig"><button id="oMinus">−</button><span class="ov2"><b id="oQty">1</b><i>'
+     + (mode==='sell' ? '賣出片數' : '退回片數') + '</i></span><button id="oPlus">＋</button></div>';
+  if(mode==='refund'){
+    h += '<div class="och"><button class="on" data-back="1">回到架上</button>'
+       + '<button data-back="0">不回（壞了／丟了）</button></div>';
+  }
+  h += '<input class="ofld" id="oOrder" placeholder="Shopee 訂單號（可留空）">';
+  $('oBody').innerHTML = h;
+  $('ovOut').classList.add('on');
+  $('oMinus').onclick = function(){ outStep(-1); };
+  $('oPlus').onclick  = function(){ outStep(1); };
+  if(mode==='sell'){
+    $('oSell').oninput = outCalc;
+    $('oArr').oninput  = outCalc;
+    outCalc();
+  }
+  var bs = $('oBody').querySelectorAll('.och button');
+  for(var i=0;i<bs.length;i++){
+    bs[i].onclick = function(){
+      var b = $('oBody').querySelectorAll('.och button');
+      for(var j=0;j<b.length;j++) b[j].classList.remove('on');
+      this.classList.add('on');
+    };
+  }
+}
+function outStep(d){
+  var max = OUT.it.qty || 1;
+  OUT.n = Math.min(Math.max(1, OUT.n + d), max);
+  $('oQty').textContent = OUT.n;
+}
+/* 賣價／到手一改就當場重算：到手 ＝（有填到手就用它，否則先用賣價）− 收價 */
+function outCalc(){
+  var el = $('oCalc'); if(!el) return;
+  var sell = num($('oSell').value), arr = num($('oArr').value);
+  var buy = OUT.it ? OUT.it.buy : null;
+  var eff = (arr == null) ? sell : arr;
+  var pro = (eff == null || buy == null) ? null : eff - buy;
+  if(sell == null){ el.innerHTML = '填上賣價，就當場算出到手與利潤。'; return; }
+  el.innerHTML = '到手 <b>' + rm(eff) + '</b>' + (arr == null ? ' <i>（先用賣價估）</i>' : '')
+    + '　｜　利潤 <b class="' + (pro==null ? '' : (pro>=0?'g':'r')) + '">' + rm(pro) + '</b>'
+    + (buy == null ? ' <i>（這筆沒收價，利潤先算不出來）</i>' : '');
+}
+function closeOut(){ $('ovOut').classList.remove('on'); }
+function outOk(){
+  var bk = $('oBody').querySelector('.och button.on');
+  var p = { token:S.tok, cmd:(OUT.mode==='sell' ? 'sell' : 'refund'), id:OUT.id, order:($('oOrder').value || '') };
+  if(OUT.mode==='sell'){
+    p.n = OUT.n;
+    var sv = ($('oSell').value || '').trim(); if(sv !== '') p.sell = parseFloat(sv);
+    var av = ($('oArr').value  || '').trim(); if(av !== '') p.arrived = parseFloat(av);
+  } else p.back = bk ? (bk.getAttribute('data-back')==='1') : true;
+  $('oOk').disabled = true;
+  api(p).then(function(r){
+    $('oOk').disabled = false;
+    if(r.ok){ var m = OUT.mode; var n = OUT.n; closeOut(); toast(m==='sell' ? ('已賣出 ' + n + ' 片') : '已退貨'); load(); }
+    else toast(errMsg(r.error));
+  }).catch(function(e){ $('oOk').disabled = false; toast('失敗：' + e.message); });
+}
+
 /* 後端錯誤碼 → 阿夜看得懂的話 */
 function errMsg(e){
   if(e==='busy') return '後端正在忙（剛剛有筆寫入還沒完成），等一下再試';
@@ -723,6 +856,9 @@ function kidHtml(r){
         +     '<button data-a="status" data-id="'+esc(r.id)+'">狀態</button>'
         +     '<button data-a="arrived" data-id="'+esc(r.id)+'">到手</button>'
         +     '<button class="d" data-a="del" data-id="'+esc(r.id)+'">刪</button>'
+        +     (r.status==='已售'
+                 ? '<button class="rf" data-a="refund" data-id="'+esc(r.id)+'">退貨</button>'
+                 : '<button class="sk" data-a="outsell" data-id="'+esc(r.id)+'">賣出</button>')
         +   '</div></div>';
   return h;
 }
@@ -830,6 +966,8 @@ function act(a, id){
     }).catch(function(e){ toast('刪除失敗：'+e.message); });
     return;
   }
+  if(a==='outsell') return openOut(it, 'sell');
+  if(a==='refund')  return openOut(it, 'refund');
   if(QUICK[a]) return openForm(it, QUICK[a], true);
 }
 
@@ -903,6 +1041,11 @@ function wire(){
   $('btnReload').onclick = function(){ toast('重新載入…'); load(); };
   $('shClose').onclick = closeForm; $('shCancel').onclick = closeForm;
   $('shSave').onclick = saveForm;
+$('oClose').onclick = closeOut;
+$('oCancel').onclick = closeOut;
+$('oOk').onclick = outOk;
+  (function(){ var bs = $('bnav').querySelectorAll('button');
+    for(var i=0;i<bs.length;i++) bs[i].onclick = function(){ setTab(this.getAttribute('data-tab')); }; })();
   $('ov').onclick = function(e){ if(e.target===$('ov')) closeForm(); };
   document.addEventListener('keydown', function(e){ if(e.key==='Escape' && $('ov').classList.contains('on')) closeForm(); });
   var bind = function(id, key, ev){
