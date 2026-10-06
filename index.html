@@ -148,6 +148,11 @@ main{max-width:1400px;margin:0 auto;padding:0 0 84px}
 .gname{font-weight:600;font-size:13.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gmeta{font-size:11px;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 .gsub{display:none}
+/* 群組列的分欄格：手機只留「賣價」＋右邊的件數／批次 */
+.gcell{font-size:11px;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ghead .gc-buy,.ghead .gc-arr,.ghead .gc-profit{display:none}
+.ghead .gc-sell{font-size:13px;font-weight:700;color:var(--ink);margin-left:auto;min-width:74px;text-align:right;font-variant-numeric:tabular-nums}
+.gtail{display:flex;align-items:center;gap:8px;min-width:0}
 .ghead .cv{color:var(--mut);font-size:10px;transition:transform .15s}
 .ghead.closed{border-bottom:0}
 .ghead.closed .cv{transform:rotate(-90deg)}
@@ -161,6 +166,7 @@ main{max-width:1400px;margin:0 auto;padding:0 0 84px}
 .kid .ttl{display:inline}
 @media(max-width:899px){.k2{flex-wrap:wrap;max-height:5.1em}.kid .ttl{max-width:100%}}
 .k2 .ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k2 .qty,.k2 .tag{flex:0 0 auto}
 .num{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap}
 .num i{font-style:normal;font-size:10px;color:var(--mut)}
 @media(max-width:560px){.stats{flex-wrap:wrap;overflow:visible}.bar{row-gap:6px;width:calc(100% - 20px)}}
@@ -228,7 +234,14 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
   .stats{flex-direction:column;gap:5px;overflow:visible}
   .s{justify-content:space-between}
   details.calc{flex:0 0 auto}
-  main{grid-column:2;grid-row:2/span 3;max-width:none;padding:0 0 60px}
+  main{grid-column:2;grid-row:2/span 3;max-width:none;margin:0;width:100%;padding:0 0 60px}
+  /* 群組列也排成跟表頭／細項列同一組欄寬 → 桌面上是一張真表格 */
+  .ghead{display:grid;grid-template-columns:minmax(0,1fr) 84px 84px 84px 84px auto;align-items:center;gap:0;padding:0}
+  .ghead .gname{padding:9px 12px;font-size:13px}
+  .ghead .gcell{display:block;padding:9px 10px;text-align:right}
+  .ghead .gc-sell{font-size:12.5px;font-weight:600;margin-left:0}
+  .ghead .gc-profit{color:var(--ok);font-weight:600}
+  .ghead .gtail{justify-content:flex-end;padding:6px 10px}
   .sec{max-width:none;padding:0}
   #list{margin:8px 0}
   .thead{display:grid;grid-template-columns:minmax(0,1fr) 84px 84px 84px 84px auto;position:sticky;top:57px;z-index:6;align-items:center;background:var(--surface2);border:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;font-size:10.5px;color:var(--mut);padding:0;margin:8px 0 -1px}
@@ -251,8 +264,13 @@ html[data-theme="dark"] .toast{background:#3a3a3a;color:#f2f2f2}
   .km{grid-column:1;grid-row:1}
   .ka{grid-column:6;grid-row:1;justify-content:flex-end;padding:6px 10px;margin:0}
   .ka button{padding:4px 8px;font-size:11.5px}
-  .fab{right:calc((100vw - 1400px)/2 + 16px)}
+  .fab{right:max(16px,calc((100vw - 1400px)/2 + 16px))}
   .segsm{display:none}
+}
+/* 寬螢幕：表頭／群組列／細項列共用同一組欄寬，數字才真的對齊成一張表 */
+@media(min-width:1200px){
+  .thead,.ghead,.kid{grid-template-columns:minmax(0,1fr) 80px 80px 80px 80px 320px}
+  .thead span:nth-child(6){padding-right:10px}
 }
 @media(min-width:430px){.grid{grid-template-columns:1fr 1fr}.grid .full{grid-column:1/-1}}
 .kid .ka button.sk{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
@@ -408,7 +426,7 @@ body.tab-sell .ka button.sk,body.tab-sell .ka button.rf{flex:1;height:48px;font-
 <script>
 /* ===== 設定 ===== */
 var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";   // REPLAY（2026-10-06 重建：同一個部署，後端已改指 v2 Sheet）
-var UI_VER = 'v12';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var UI_VER = 'v13';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -798,11 +816,24 @@ function render(){
     var closed = !force && !S.open[name];
     var sBuy=0,sSell=0,sProfit=0;
     kids.forEach(function(r){ if(r.buy!=null)sBuy+=r.buy; if(r.sell!=null)sSell+=r.sell; if(r.profit!=null)sProfit+=r.profit; });
+    var gSub = '';
+    if(kids.length > 1){
+      gSub = kids.length+' 批 · '+qty+' 件'+(onSale?' · '+onSale+' 在賣':'');
+    }else{
+      var r0 = kids[0], bits = [];
+      if(r0.qty > 1) bits.push(r0.qty+' 件');
+      if(r0.status !== '在賣') bits.push(r0.status);
+      if(r0.listed === '已下架') bits.push('已下架');
+      gSub = bits.join(' · ');
+    }
     html += '<div class="card"><div class="ghead'+(closed?' closed':'')+'" data-g="'+esc(name)+'">'
-          +   '<span class="cv">▾</span><span class="gname">'+esc(name)+'</span>'
-          +   '<span class="gsub">收 '+rm(sBuy)+' · 賣 '+rm(sSell)+' · 利潤 '+rm(sProfit)+'</span>'
-          +   '<span class="gmeta">'+kids.length+' 批 · '+qty+' 件'+(onSale?' · '+onSale+' 在賣':'')+'</span>'
-          +   '<button class="gadd" title="在這個群組加一筆">＋</button></div>';
+          +   '<span class="gname"><span class="cv">▾</span>'+esc(name)+'</span>'
+          +   '<span class="gcell gc-buy">'+rm(sBuy)+'</span>'
+          +   '<span class="gcell gc-sell">'+rm(sSell)+'</span>'
+          +   '<span class="gcell gc-arr"></span>'
+          +   '<span class="gcell gc-profit">'+rm(sProfit)+'</span>'
+          +   '<span class="gtail"><span class="gmeta">'+gSub+'</span>'
+          +     '<button class="gadd" title="在這個群組加一筆">＋</button></span></div>';
     if(!closed){
       kids.forEach(function(r){ html += kidHtml(r); });
     }
