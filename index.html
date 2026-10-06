@@ -158,8 +158,8 @@ main{max-width:1400px;margin:0 auto;padding:0 0 84px}
 .km{flex:1 1 120px;min-width:0}
 .k1{font-size:12px;line-height:1.3;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .k2{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:11px;line-height:1.3;color:var(--mut);min-width:0;overflow:hidden}
-.kid .ttl{display:none}
-@media(min-width:900px){.kid .ttl{display:inline}}
+.kid .ttl{display:inline}
+@media(max-width:899px){.k2{flex-wrap:wrap;max-height:5.1em}.kid .ttl{max-width:100%}}
 .k2 .ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .num{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap}
 .num i{font-style:normal;font-size:10px;color:var(--mut)}
@@ -407,8 +407,8 @@ body.tab-sell .ka button.sk,body.tab-sell .ka button.rf{flex:1;height:48px;font-
 
 <script>
 /* ===== 設定 ===== */
-var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";
-var UI_VER = 'v11';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
+var API = "https://script.google.com/macros/s/AKfycbzIDMPi-_cbDt9MU8NS1GCT9-6tsJLWsSPzlFGJGY7_4NcU_aQAvp__YGzblX4H54PNtw/exec";   // REPLAY（2026-10-06 重建：同一個部署，後端已改指 v2 Sheet）
+var UI_VER = 'v12';                  // UI 版本：改 UI 就 +1。看不到新版時先問阿夜這串是什麼
 var CATS = ['Nintendo Switch','PlayStation','TCG','Console','Other'];
 var SUBS = {'Nintendo Switch':['Switch 1','Switch 2'],'PlayStation':['PS4','PS5'],'TCG':['One Piece','Pokémon'],'Console':[],'Other':[]};
 var FEE_MAX = 0.30;                 // Shopee 抽成上限（保守）
@@ -840,13 +840,15 @@ function kidHtml(r){
         +   '<div class="km">'
         +     '<div class="k1">'+esc(sub)+'</div>'
         +     '<div class="k2"><span class="qty">×'+esc(r.qty)+'</span><span class="tag '+st+'">'+esc(r.status||'在賣')+'</span>'
+        +       (r.listed ? '<span class="ttl">'+esc(r.listed)+'</span>' : '')
         +       (r.title && r.title!==r.name ? '<span class="ttl">'+esc(r.name)+'</span>' : '')
+        +       (r.soldDate ? '<span class="ttl">賣 '+esc(r.soldDate)+'</span>' : '')
         +       (r.note ? '<span class="ttl">'+esc(r.note)+'</span>' : '')
         +     '</div>'
         +   '</div>'
         +   '<span class="num" data-k="sell"><b>'+rm(r.sell)+'</b><i>賣價</i></span>'
         +   '<div class="knum">'
-        +     '<span class="num" data-k="buy"><i>收</i><b>'+rm(r.buy)+'</b></span>'
+        +     '<span class="num" data-k="buy"><i>收'+(r.costSrc==='估'?'(估)':'')+'</i><b>'+rm(r.buy)+'</b></span>'
         +     '<span class="num" data-k="arrived"><i>到手</i><b>'+rm(r.arrived)+'</b></span>'
         +     '<span class="num" data-k="profit"><i>利潤</i><b class="'+(r.profit==null?'p0':'p')+'">'+rm(r.profit)+'</b></span>'
         +   '</div>'
@@ -893,7 +895,11 @@ var FLDS = [
   {k:'arrived',label:'到手價（賣掉才填）', num:true, ph:'RM'},
   {k:'qty',    label:'數量', num:true, step:'1', min:'1', ph:'1'},
   {k:'status', label:'狀態', sel:function(){ return ['在賣','自藏','已售']; }},
-  {k:'note',   label:'備註', full:true, ph:'例：鐵盒版 / 附 OST'}
+  {k:'note',   label:'備註', full:true, ph:'例：鐵盒版 / 附 OST'},
+  {k:'listed', label:'上架狀態', sel:function(){ return ['上架中','已下架','賣完']; }, blank:'—'},
+  {k:'costSrc',label:'成本來源', sel:function(){ return ['真','估']; }, blank:'—'},
+  {k:'soldDate',label:'賣出日', ph:'YYYY-MM-DD（賣出時自動填）'},
+  {k:'pid',    label:'Shopee 編號', ph:'例：58166221039'}
 ];
 var QUICK = { sell:['sell'], status:['status'], arrived:['arrived'] };
 
@@ -933,7 +939,8 @@ async function saveForm(){
   var item = {};
   Array.prototype.forEach.call($('shBody').querySelectorAll('[data-f]'), function(el){
     var k = el.getAttribute('data-f'), v = el.value;
-    if(k==='name' || k==='title' || k==='note' || k==='version' || k==='cond' || k==='lang' || k==='cat' || k==='sub'){
+    if(k==='name' || k==='title' || k==='note' || k==='version' || k==='cond' || k==='lang' || k==='cat' || k==='sub'
+       || k==='listed' || k==='costSrc' || k==='soldDate' || k==='pid'){
       item[k] = String(v||'').trim();                 // 後端：空字串＝清空（改名要用到）
     } else {
       if(v==='') item[k] = '';                        // 空＝未知／不填
